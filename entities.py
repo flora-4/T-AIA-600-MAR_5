@@ -1,6 +1,12 @@
-import os
-import json
-import spacy
+import os,json,subprocess,sys
+
+try :
+    import spacy
+except :
+    subprocess.run([sys.executable, "-m","pip","install", "spacy"])
+    import spacy
+if not "en_core_web_sm" in spacy.info()["pipelines"]:
+    subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
 
 BOOK_DIR = os.path.join(os.path.dirname(__file__), "books")
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")

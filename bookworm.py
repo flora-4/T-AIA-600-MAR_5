@@ -6,7 +6,6 @@ try:
     import requests
 except:
     subprocess.run([sys.executable,"-m","pip", "install","requests"])
-    subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
     import requests
 
 import lexdiv as ld
@@ -70,7 +69,7 @@ def downloadBook(ResultResearch):
         print("aucun livre trouver avec l'élément donnée")
 
 def GetOnlyBook(bookid):
-    downloadBook(id)
+    downloadBook(bookid)
     if not os.path.exists(os.path.join(bookDir,bookid+".txt")):
         print("id du livre non trouver")
         return
@@ -87,12 +86,6 @@ def GetOnlyBook(bookid):
         return [contenuTop,contenuMid,contenuEnd]
 
 
-
-# result = reserch(site+"?"+params)
-downloadBook(id)
-
-# GetOnlyBook(id)
-
 def cliExecute (param,bookid): 
     match param :
         case "--lexdiv":
@@ -101,12 +94,12 @@ def cliExecute (param,bookid):
             print(extract_topics(bookid))
         case "--entities":
             print(extract_entities(bookid))
-        # case "--summarize":
-        #     print("summarize pour "+id)
-        # case "--similar":
-        #     print("similar pour "+id)
-        # case "--card":
-        #     print("similar pour "+id)
+        case "--summarize":
+            print("summarize pour "+bookid)
+        case "--similar":
+            print("similar pour "+bookid)
+        case "--card":
+            print("similar pour "+bookid)
         case _:
             print("commande non trouver")
 
