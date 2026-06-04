@@ -1,12 +1,15 @@
 import subprocess,os,sys
+from topics import extract_topics
+from entities import extract_entities
 
 try:
     import requests
 except:
     subprocess.run([sys.executable,"-m","pip", "install","requests"])
+    subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
     import requests
 
-import lexdiv as ld
+# import lexdiv as ld
 
 bookDir = os.path.join(os.path.dirname(__file__),"books")
 cmd = sys.argv
@@ -86,24 +89,24 @@ def GetOnlyBook(bookid):
 
 
 # result = reserch(site+"?"+params)
-# downloadBook(id)
+downloadBook(id)
 
 # GetOnlyBook(id)
 
-def cliExecute (param,id): 
+def cliExecute (param,bookid): 
     match param :
-        case "--lexdiv":
-            print(ld.lexdiv(GetOnlyBook(id)))
+        # case "--lexdiv":
+        #     print(ld.lexdiv(GetOnlyBook(id)))
         case "--topics":
-            print("topics pour "+id)
+            print(extract_topics(bookid))
         case "--entities":
-            print("entities pour "+id)
-        case "--summarize":
-            print("summarize pour "+id)
-        case "--similar":
-            print("similar pour "+id)
-        case "--card":
-            print("similar pour "+id)
+            print(extract_entities(bookid))
+        # case "--summarize":
+        #     print("summarize pour "+id)
+        # case "--similar":
+        #     print("similar pour "+id)
+        # case "--card":
+        #     print("similar pour "+id)
         case _:
             print("commande non trouver")
 
