@@ -9,7 +9,7 @@ except:
     subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
     import requests
 
-# import lexdiv as ld
+import lexdiv as ld
 
 bookDir = os.path.join(os.path.dirname(__file__),"books")
 cmd = sys.argv
@@ -95,8 +95,8 @@ downloadBook(id)
 
 def cliExecute (param,bookid): 
     match param :
-        # case "--lexdiv":
-        #     print(ld.lexdiv(GetOnlyBook(id)))
+        case "--lexdiv":
+            print(ld.lexdiv(GetOnlyBook(id)))
         case "--topics":
             print(extract_topics(bookid))
         case "--entities":
