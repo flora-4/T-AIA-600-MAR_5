@@ -1,6 +1,4 @@
 import subprocess,os,sys,json
-from topics import extract_topics
-from entities import extract_entities
 
 try:
     import requests
@@ -9,9 +7,9 @@ except:
     import requests
 
 import cache as ch
-import lexdiv as ld
 
 bookDir = os.path.join(os.path.dirname(__file__),"books")
+cacheDir = os.path.join(os.path.dirname(__file__),"cache")
 try:
     cmd = sys.argv
     param = cmd[1]
@@ -50,7 +48,8 @@ def downloadBook(ResultResearch):
             return
         result = reserch(f"https://www.gutenberg.org/cache/epub/{ResultResearch}/pg{ResultResearch}.txt")
         if not result:
-            return
+            print ("aucun livre trouver avec l'id",ResultResearch)
+            sys.exit()
         with open(os.path.join(bookDir,ResultResearch+".txt"),"w", encoding="utf-8") as f:
             f.write(result)
         return
@@ -70,13 +69,11 @@ def downloadBook(ResultResearch):
                         f.write(reserch(f"https://www.gutenberg.org/cache/epub/{EBookNo}/pg{EBookNo}.txt"))
                     print(EBookNo)
     else:
-        print("aucun livre trouver avec l'élément donnée")
+        print ("aucun livre trouver avec",ResultResearch)
+        sys.exit()
 
 def GetOnlyBook(bookid):
-    downloadBook(bookid)
-    if not os.path.exists(os.path.join(bookDir,bookid+".txt")):
-        print("id du livre non trouver")
-        return
+    pathBook = os.path.join(bookDir,bookid+".txt")
     with open(os.path.join(bookDir,bookid+".txt"),"r",encoding="utf-8") as f:
         contenu = f.read()
         indexStart = contenu.find('*** START OF THE PROJECT GUTENBERG EBOOK')
@@ -94,17 +91,20 @@ cliCommande = ["--lexdiv","--topics","--entities","--summarize","--similar"]
 def cliExecute (param,bookid): 
     if not os.path.exists(os.path.join(bookDir,bookid+".txt")):
         downloadBook(bookid)
-    if os.path.exists(os.path.join(bookDir,bookid+".txt")):
+    if not os.path.exists(os.path.join(cacheDir,bookid+".json")):
         ch.createFile(bookid,GetOnlyBook(bookid))
     cache = ch.cacheGestion(bookid,param)
     if cache:
         return cache
     match param :
         case "--lexdiv":
+            import lexdiv as ld
             return ch.cacheGestion(bookid,param,ld.lexdiv(GetOnlyBook(bookid)))
         case "--topics":
+            from topics import extract_topics
             return ch.cacheGestion(bookid,param,extract_topics(bookid))
         case "--entities":
+            from entities import extract_entities
             return ch.cacheGestion(bookid,param,extract_entities(bookid))
         case "--summarize":
             print("summarize pour "+bookid)
