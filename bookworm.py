@@ -1,4 +1,4 @@
-import subprocess,os,sys
+import subprocess,os,sys,json
 from topics import extract_topics
 from entities import extract_entities
 
@@ -8,14 +8,18 @@ except:
     subprocess.run([sys.executable,"-m","pip", "install","requests"])
     import requests
 
+import cache as ch
 import lexdiv as ld
 
 bookDir = os.path.join(os.path.dirname(__file__),"books")
-cmd = sys.argv
-param = cmd[1]
-id = cmd[2]
+try:
+    cmd = sys.argv
+    param = cmd[1]
+    id = cmd[2]
+except:
+    param = None
+    id = None
 
-print(param,id)
 if not os.path.exists(bookDir):
     os.mkdir(bookDir)
 
@@ -85,24 +89,35 @@ def GetOnlyBook(bookid):
         
         return [contenuTop,contenuMid,contenuEnd]
 
+cliCommande = ["--lexdiv","--topics","--entities","--summarize","--similar"]
 
 def cliExecute (param,bookid): 
+    if not os.path.exists(os.path.join(bookDir,bookid+".txt")):
+        downloadBook(bookid)
+    if os.path.exists(os.path.join(bookDir,bookid+".txt")):
+        ch.createFile(bookid,GetOnlyBook(bookid))
+    cache = ch.cacheGestion(bookid,param)
+    if cache:
+        return cache
     match param :
         case "--lexdiv":
-            print(ld.lexdiv(GetOnlyBook(id)))
+            return ch.cacheGestion(bookid,param,ld.lexdiv(GetOnlyBook(bookid)))
         case "--topics":
-            print(extract_topics(bookid))
+            return ch.cacheGestion(bookid,param,extract_topics(bookid))
         case "--entities":
-            print(extract_entities(bookid))
+            return ch.cacheGestion(bookid,param,extract_entities(bookid))
         case "--summarize":
             print("summarize pour "+bookid)
         case "--similar":
             print("similar pour "+bookid)
         case "--card":
-            print("similar pour "+bookid)
-        case _:
-            print("commande non trouver")
+            for i in cliCommande:
+                cliExecute(i,bookid)
+            print("card pour "+bookid)
+            return ch.cacheGestion(bookid,param)
 
-cliExecute(param,id)
+result = cliExecute(param,id)
+if result:
+    print(json.dumps(result, indent=4, ensure_ascii=False))
 
 "https://www.gutenberg.org/cache/epub/78788/pg78788.txt"
