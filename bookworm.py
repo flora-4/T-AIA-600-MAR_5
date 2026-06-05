@@ -46,12 +46,14 @@ def downloadBook(ResultResearch):
     if ResultResearch.isnumeric():
         if(os.path.exists(os.path.join(bookDir,ResultResearch+".txt"))):
             return
+        print("recherche du livre à télécharger")
         result = reserch(f"https://www.gutenberg.org/cache/epub/{ResultResearch}/pg{ResultResearch}.txt")
         if not result:
             print ("aucun livre trouver avec l'id",ResultResearch)
             sys.exit()
         with open(os.path.join(bookDir,ResultResearch+".txt"),"w", encoding="utf-8") as f:
             f.write(result)
+        print(f"le livre {ResultResearch} a été télécharché")
         return
 
     if "pgdbfiles" in ResultResearch:
@@ -94,26 +96,31 @@ def cliExecute (param,bookid):
     if not os.path.exists(os.path.join(cacheDir,bookid+".json")):
         ch.createFile(bookid,GetOnlyBook(bookid))
     cache = ch.cacheGestion(bookid,param)
-    if cache:
+    if cache and param != "--card":
         return cache
     match param :
         case "--lexdiv":
+            print("exécution de la commande pour avoir la richesse du livre")
             import lexdiv as ld
             return ch.cacheGestion(bookid,param,ld.lexdiv(GetOnlyBook(bookid)))
         case "--topics":
+            print("exécution de la commande pour avoir les thèmes du livre")
             from topics import extract_topics
             return ch.cacheGestion(bookid,param,extract_topics(bookid))
         case "--entities":
+            print("exécution de la commande pour avoir les entitées présentes dans le livre")
             from entities import extract_entities
             return ch.cacheGestion(bookid,param,extract_entities(bookid))
         case "--summarize":
+            print("exécution de la commande pour avoir un résumer du livre")
             print("summarize pour "+bookid)
         case "--similar":
+            print("exécution de la commande pour avoir des livre ressemblant au livre")
             print("similar pour "+bookid)
         case "--card":
+            print("exécution de la commande pour avoir une carte sur le livre avec toutes les informations")
             for i in cliCommande:
                 cliExecute(i,bookid)
-            print("card pour "+bookid)
             return ch.cacheGestion(bookid,param)
 
 result = cliExecute(param,id)
