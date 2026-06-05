@@ -27,7 +27,7 @@ def getFromCache(id,param):
     data = openJson(path_file)
     if param in data:
         return data[param]
-    elif param == "card":
+    elif param == "--card":
         return data
     else:
         return
@@ -45,8 +45,10 @@ def cacheGestion(id,param,value=None):
     return
 
 def createFile(id,bookStart):
-    print(bookStart)
     path_file = os.path.join(cache_directory,f"{id}.json")
     if not os.path.exists(path_file):
+        indexAuthor = bookStart[0].find("Author")
+        indexRelease = bookStart[0].find("Release date")
+        author = bookStart[0][indexAuthor+7:indexRelease].strip()
         with open (path_file,"w",encoding='utf-8') as f:
-            json.dump({"info":{"id":id,"authors":"","bookshelves":""}}, f, indent=2, ensure_ascii=False)
+            json.dump({"info":{"id":id,"authors":author,"bookshelves":None}}, f, indent=2, ensure_ascii=False)
