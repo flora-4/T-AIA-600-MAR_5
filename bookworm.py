@@ -1,6 +1,4 @@
-import subprocess,os,sys
-from topics import extract_topics
-from entities import extract_entities
+import subprocess,os,sys,json
 
 try:
     import requests
@@ -8,14 +6,18 @@ except:
     subprocess.run([sys.executable,"-m","pip", "install","requests"])
     import requests
 
-import lexdiv as ld
+import cache as ch
 
 bookDir = os.path.join(os.path.dirname(__file__),"books")
-cmd = sys.argv
-param = cmd[1]
-id = cmd[2]
+cacheDir = os.path.join(os.path.dirname(__file__),"cache")
+try:
+    cmd = sys.argv
+    param = cmd[1]
+    id = cmd[2]
+except:
+    param = None
+    id = None
 
-print(param,id)
 if not os.path.exists(bookDir):
     os.mkdir(bookDir)
 
@@ -44,11 +46,14 @@ def downloadBook(ResultResearch):
     if ResultResearch.isnumeric():
         if(os.path.exists(os.path.join(bookDir,ResultResearch+".txt"))):
             return
+        print("recherche du livre à télécharger")
         result = reserch(f"https://www.gutenberg.org/cache/epub/{ResultResearch}/pg{ResultResearch}.txt")
         if not result:
-            return
+            print ("aucun livre trouver avec l'id",ResultResearch)
+            sys.exit()
         with open(os.path.join(bookDir,ResultResearch+".txt"),"w", encoding="utf-8") as f:
             f.write(result)
+        print(f"le livre {ResultResearch} a été télécharché")
         return
 
     if "pgdbfiles" in ResultResearch:
@@ -66,13 +71,11 @@ def downloadBook(ResultResearch):
                         f.write(reserch(f"https://www.gutenberg.org/cache/epub/{EBookNo}/pg{EBookNo}.txt"))
                     print(EBookNo)
     else:
-        print("aucun livre trouver avec l'élément donnée")
+        print ("aucun livre trouver avec",ResultResearch)
+        sys.exit()
 
 def GetOnlyBook(bookid):
-    downloadBook(bookid)
-    if not os.path.exists(os.path.join(bookDir,bookid+".txt")):
-        print("id du livre non trouver")
-        return
+    pathBook = os.path.join(bookDir,bookid+".txt")
     with open(os.path.join(bookDir,bookid+".txt"),"r",encoding="utf-8") as f:
         contenu = f.read()
         indexStart = contenu.find('*** START OF THE PROJECT GUTENBERG EBOOK')
@@ -85,24 +88,43 @@ def GetOnlyBook(bookid):
         
         return [contenuTop,contenuMid,contenuEnd]
 
+cliCommande = ["--lexdiv","--topics","--entities","--summarize","--similar"]
 
 def cliExecute (param,bookid): 
+    if not os.path.exists(os.path.join(bookDir,bookid+".txt")):
+        downloadBook(bookid)
+    if not os.path.exists(os.path.join(cacheDir,bookid+".json")):
+        ch.createFile(bookid,GetOnlyBook(bookid))
+    cache = ch.cacheGestion(bookid,param)
+    if cache and param != "--card":
+        return cache
     match param :
         case "--lexdiv":
-            print(ld.lexdiv(GetOnlyBook(id)))
+            print("exécution de la commande pour avoir la richesse du livre")
+            import lexdiv as ld
+            return ch.cacheGestion(bookid,param,ld.lexdiv(GetOnlyBook(bookid)))
         case "--topics":
-            print(extract_topics(bookid))
+            print("exécution de la commande pour avoir les thèmes du livre")
+            from topics import extract_topics
+            return ch.cacheGestion(bookid,param,extract_topics(bookid))
         case "--entities":
-            print(extract_entities(bookid))
+            print("exécution de la commande pour avoir les entitées présentes dans le livre")
+            from entities import extract_entities
+            return ch.cacheGestion(bookid,param,extract_entities(bookid))
         case "--summarize":
+            print("exécution de la commande pour avoir un résumer du livre")
             print("summarize pour "+bookid)
         case "--similar":
+            print("exécution de la commande pour avoir des livre ressemblant au livre")
             print("similar pour "+bookid)
         case "--card":
-            print("similar pour "+bookid)
-        case _:
-            print("commande non trouver")
+            print("exécution de la commande pour avoir une carte sur le livre avec toutes les informations")
+            for i in cliCommande:
+                cliExecute(i,bookid)
+            return ch.cacheGestion(bookid,param)
 
-cliExecute(param,id)
+result = cliExecute(param,id)
+if result:
+    print(json.dumps(result, indent=4, ensure_ascii=False))
 
 "https://www.gutenberg.org/cache/epub/78788/pg78788.txt"
