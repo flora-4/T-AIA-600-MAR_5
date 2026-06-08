@@ -1,4 +1,4 @@
-import subprocess,os,sys,json
+import subprocess,os,re,sys,json
 
 try:
     import requests
@@ -74,25 +74,145 @@ def downloadBook(ResultResearch):
         print ("aucun livre trouver avec",ResultResearch)
         sys.exit()
 
+def clean_text(text):
+    """
+    Nettoie le texte pour faciliter les traitements NLP.
+
+    NLP signifie Natural Language Processing :
+    ce sont les traitements automatiques du langage.
+    """
+
+    # Supprime les retours chariot Windows.
+    text = text.replace('\r', '')
+
+    # Supprime les petits textes entre crochets.
+    # Exemple : [Illustration]
+    text = re.sub(r'\[[^\]]{0,80}\]', ' ', text)
+
+    # Supprime certaines lignes qui sont des titres de chapitres ou de parties.
+    text = re.sub(
+        r'(?m)^[ \t]*(CHAPTER|Chapter|BOOK|PART|SECTION|ADVENTURE)\s+[\w\-\.]+[^\n]{0,60}$',
+        '',
+        text
+    )
+
+    # Supprime les chiffres romains seuls.
+    # Exemple : I, II, III, IV...
+    text = re.sub(r'(?m)^\s*[IVXLCDM]{1,6}\.?\s*$', '', text)
+
+    # Remplace les guillemets typographiques par des espaces ou apostrophes simples.
+    text = text.replace('\u201c', ' ').replace('\u201d', ' ')
+    text = text.replace('\u2018', ' ').replace('\u2019', "'")
+
+    # Supprime les underscores utilisés par Gutenberg pour l'italique.
+    text = text.replace('_', ' ')
+
+    # Remplace plusieurs espaces par un seul espace.
+    text = re.sub(r' {2,}', ' ', text)
+
+    # Réduit les grands blocs de lignes vides.
+    text = re.sub(r'\n{3,}', '\n\n', text)
+
+    # Retourne le texte final sans espaces inutiles au début et à la fin.
+    return text.strip()
+
+
+def extract_body(text):
+    """
+    Extrait uniquement le vrai contenu du livre.
+
+    Un fichier Gutenberg contient souvent :
+    - un début avec des informations techniques et légales ;
+    - le texte du livre ;
+    - une fin avec des mentions légales.
+
+    Cette fonction retire ce qui n'est pas le livre.
+    """
+
+    # On cherche le marqueur de début du livre.
+    # La regex accepte "THE" ou "THIS" car Gutenberg varie selon les fichiers.
+    match_start = re.search(
+        r'\*{3}\s*START OF (THE|THIS) PROJECT GUTENBERG[^\n]*\n',
+        text
+    )
+
+    # On cherche le marqueur de fin du livre.
+    match_end = re.search(
+        r'\*{3}\s*END OF (THE|THIS) PROJECT GUTENBERG',
+        text
+    )
+
+    # Si on trouve un début et une fin, on garde seulement ce qui est entre les deux.
+    if match_start and match_end:
+        body = text[match_start.end():match_end.start()]
+
+    # Sinon, on applique des solutions de secours.
+    else:
+        # Si on trouve seulement le début, on garde tout ce qui vient après.
+        if match_start:
+            body = text[match_start.end():]
+
+        # Si aucun marqueur Gutenberg n'est trouvé, on essaye quand même de récupérer le livre.
+        else:
+            # Par défaut, on garde tout le texte.
+            body = text
+
+            # On cherche des marqueurs classiques de début de livre.
+            for marker in ['CHAPTER I', 'Chapter I', 'PART ONE', 'BOOK ONE']:
+                idx = text.find(marker)
+
+                # Si on trouve un chapitre, on commence le texte à partir de là.
+                if idx != -1:
+                    body = text[idx:]
+                    break
+
+    # Liste de motifs qui peuvent indiquer une fin inutile ou légale.
+    footer_patterns = [
+        r'\n[A-Z][^\n]{0,60}\n\nMay be had wherever books are sold',
+        r'\nEnd of (the )?Project Gutenberg',
+        r'\nEND OF PROJECT GUTENBERG',
+        r'\nEnd of Project',
+        r'\n+\s*THE END\s*\n+',
+    ]
+
+    # earliest représente l'endroit le plus tôt où une fin parasite est trouvée.
+    earliest = len(body)
+
+    # On teste chaque motif de fin.
+    for pattern in footer_patterns:
+        # re.IGNORECASE permet d'ignorer les majuscules/minuscules.
+        m = re.search(pattern, body, re.IGNORECASE)
+
+        # Si un motif est trouvé avant les autres, on garde sa position.
+        if m and m.start() < earliest:
+            earliest = m.start()
+
+    # Si on a trouvé une fin parasite, on coupe le texte avant cette partie.
+    if earliest < len(body):
+        body = body[:earliest]
+
+    # On retourne le texte nettoyé des espaces au début et à la fin.
+    return clean_text(body.strip())
+
 def GetOnlyBook(bookid):
     pathBook = os.path.join(bookDir,bookid+".txt")
+    if not os.path.exists(pathBook):
+        downloadBook(bookid)
     with open(os.path.join(bookDir,bookid+".txt"),"r",encoding="utf-8") as f:
         contenu = f.read()
-        indexStart = contenu.find('*** START OF THE PROJECT GUTENBERG EBOOK')
-        indexEnd = contenu.find('*** END OF THE PROJECT GUTENBERG EBOOK')
+        indexStart = contenu.find('*** START ')
+        indexEnd = contenu.find('*** END ')
         contenuTop = contenu[:indexStart]
         contenuMid = contenu[indexStart+3:indexEnd]
         contenuMid = contenuMid[contenuMid.find("***")+3:]
         contenuEnd = contenu[indexEnd+3:]
         contenuEnd = contenuEnd[contenuEnd.find("***")+3:]
         
-        return [contenuTop,contenuMid,contenuEnd]
+        return [contenuTop,extract_body(contenuMid),contenuEnd]
 
 cliCommande = ["--lexdiv","--topics","--entities","--summarize","--similar"]
 
 def cliExecute (param,bookid): 
-    if not os.path.exists(os.path.join(bookDir,bookid+".txt")):
-        downloadBook(bookid)
     if not os.path.exists(os.path.join(cacheDir,bookid+".json")):
         ch.createFile(bookid,GetOnlyBook(bookid))
     cache = ch.cacheGestion(bookid,param)
@@ -106,24 +226,38 @@ def cliExecute (param,bookid):
         case "--topics":
             print("exécution de la commande pour avoir les thèmes du livre")
             from topics import extract_topics
-            return ch.cacheGestion(bookid,param,extract_topics(bookid))
+            return ch.cacheGestion(bookid,param,extract_topics(GetOnlyBook(bookid)))
         case "--entities":
             print("exécution de la commande pour avoir les entitées présentes dans le livre")
             from entities import extract_entities
-            return ch.cacheGestion(bookid,param,extract_entities(bookid))
+            return ch.cacheGestion(bookid,param,extract_entities(GetOnlyBook(bookid)))
         case "--summarize":
             print("exécution de la commande pour avoir un résumer du livre")
-            print("summarize pour "+bookid)
+            # import test
+            # print(test.summarize(GetOnlyBook(bookid)[1]))
+            # import distilBART as db
+            # print(db.summarize(GetOnlyBook(bookid)[1]))
+            # return ch.cacheGestion(bookid,param,db.summarize(GetOnlyBook(bookid)[1]))
+            # import distilBARTDivisionParagraphe
+            # print(distilBARTDivisionParagraphe.summarize(GetOnlyBook(bookid)[1]))
+            # import distilBARTDivisionPhrase
+            # print(distilBARTDivisionPhrase.summarize(GetOnlyBook(bookid)[1]))
         case "--similar":
             print("exécution de la commande pour avoir des livre ressemblant au livre")
-            print("similar pour "+bookid)
+                        # Fonction définie dans similar.py.
+            from similar import extract_similar
+
+            # Ici on passe bookid car le module similar compare ce livre avec d'autres IDs.
+            return ch.cacheGestion(bookid, param, extract_similar(bookid))
         case "--card":
             print("exécution de la commande pour avoir une carte sur le livre avec toutes les informations")
             for i in cliCommande:
                 cliExecute(i,bookid)
             return ch.cacheGestion(bookid,param)
 
-result = cliExecute(param,id)
+result = None
+if param and id:
+    result = cliExecute(param,id)
 if result:
     print(json.dumps(result, indent=4, ensure_ascii=False))
 

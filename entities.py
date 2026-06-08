@@ -1,71 +1,111 @@
-import os,json,subprocess,sys
+import re
+import subprocess
+import sys
 
-try :
+try:
     import spacy
-except :
-    subprocess.run([sys.executable, "-m","pip","install", "spacy"])
+except ImportError:
+    subprocess.run([sys.executable, "-m", "pip", "install", "spacy"])
     import spacy
-if not "en_core_web_sm" in spacy.info()["pipelines"]:
+
+try:
+    spacy.load("en_core_web_sm")
+except OSError:
     subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+    import importlib
+    importlib.reload(spacy)
 
-BOOK_DIR = os.path.join(os.path.dirname(__file__), "books")
-CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
+PERSON_BLACKLIST = {
+    "said", "chapter", "gutenberg", "project", "illustration", "footnote",
+    "miss", "mr", "mrs", "dr", "lord", "lady", "majesty",
+    "idiot", "stolen", "drawn", "away", "navigation", "treason",
+    "pennyworth", "hearthrug", "latitude", "longitude","quietly", "silently", "momentarily", "presently", "taking",
+    "motioning", "neither", "stop", "behold", "confessedly",
+}
+
+LOCATION_BLACKLIST = {
+    "esq", "turkey", "crab", "magpie", "tortoise", "mouse", "gryphon",
+    "duchess", "king", "mabel", "stigand", "tillie", "supporting",
+    "helm", "albeit", "dinah", "lobster", "caterpillar","and", "us", "thou", "dearest", "mlle", "monsieur", "death",
+    "thunderer", "city", "valley", "east", "fourth",
+}
 
 
-def read_book(book_id):
-    path = os.path.join(BOOK_DIR, f"{book_id}.txt")
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Le livre {book_id}.txt n'existe pas dans books/")
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+def is_valid_entity(text):
+    if '\n' in text or '\r' in text:
+        return False
+
+    if re.search(r'[\\/<>{}|\[\]@#$%^*+=~`]', text):
+        return False
+    if re.fullmatch(r'[IVXLCDM]{2,}', text.strip()):
+        return False
+    if len(text.strip()) < 2 or len(text.strip()) > 40:
+        return False
+    if not re.search(r'[a-zA-Z]', text):
+        return False
+    if len(text.strip().split()) > 4:
+        return False
+    if text[0].islower():
+        return False
+    return True
 
 
-def clean_gutenberg_text(text):
-    start = text.find("*** START")
-    end = text.find("*** END")
-    if start != -1:
-        text = text[start:]
-    if end != -1:
-        text = text[:end]
+def clean_entity_text(text):
+    text = re.sub(r'\s+', ' ', text).strip()
+    text = text.strip(".,;:!?\"'()--_")
     return text
 
 
-def extract_entities(book_id):
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    cache_path = os.path.join(CACHE_DIR, f"{book_id}_entities.json")
+def deduplicate_by_frequency(entity_dict):
+    sorted_names = sorted(entity_dict.keys(), key=lambda x: entity_dict[x], reverse=True)
+    kept = []
+    for name in sorted_names:
+        is_variant = any(
+            name != existing and name.startswith(existing)
+            for existing in kept
+        )
+        if not is_variant:
+            kept.append(name)
+    return kept
 
-    if os.path.exists(cache_path):
-        with open(cache_path, "r") as f:
-            return json.load(f)
-    text = read_book(book_id)
-    text = clean_gutenberg_text(text)
+
+def extract_entities(array):
+   
+    if not array:
+        print("aucun livre à traiter")
+        return {}
+
+    text = array[1]
     try:
         nlp = spacy.load("en_core_web_sm")
     except OSError:
-        raise OSError(
-            "Modèle spaCy manquant. Lance : python -m spacy download en_core_web_sm"
-        )
+        raise OSError("Modèle spaCy manquant. Lance : python -m spacy download en_core_web_sm")
     chunk_size = 100_000
     chunks = [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
-    characters = set()  
-    locations = set()
+
+    characters = {}
+    locations = {}
 
     for chunk in chunks:
         doc = nlp(chunk)
-
         for ent in doc.ents:
+            raw = ent.text
+            cleaned = clean_entity_text(raw)
+
+            if not is_valid_entity(cleaned):
+                continue
+
+            lower = cleaned.lower()
 
             if ent.label_ == "PERSON":
-                characters.add(ent.text.strip())
+                if lower not in PERSON_BLACKLIST:
+                    characters[cleaned] = characters.get(cleaned, 0) + 1
 
             elif ent.label_ in ("GPE", "LOC"):
-                locations.add(ent.text.strip())
+                if lower not in LOCATION_BLACKLIST:
+                    locations[cleaned] = locations.get(cleaned, 0) + 1
 
-    result = {
-        "characters": sorted(list(characters)),
-        "locations": sorted(list(locations))
+    return {
+        "characters": deduplicate_by_frequency(characters),
+        "locations":  deduplicate_by_frequency(locations),
     }
-    with open(cache_path, "w") as f:
-        json.dump(result, f)
-
-    return result
