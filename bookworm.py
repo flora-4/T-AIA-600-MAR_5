@@ -233,15 +233,9 @@ def cliExecute (param,bookid):
             return ch.cacheGestion(bookid,param,extract_entities(GetOnlyBook(bookid)))
         case "--summarize":
             print("exécution de la commande pour avoir un résumer du livre")
-            # import test
-            # print(test.summarize(GetOnlyBook(bookid)[1]))
-            # import distilBART as db
-            # print(db.summarize(GetOnlyBook(bookid)[1]))
-            # return ch.cacheGestion(bookid,param,db.summarize(GetOnlyBook(bookid)[1]))
-            # import distilBARTDivisionParagraphe
-            # print(distilBARTDivisionParagraphe.summarize(GetOnlyBook(bookid)[1]))
-            # import distilBARTDivisionPhrase
-            # print(distilBARTDivisionPhrase.summarize(GetOnlyBook(bookid)[1]))
+            import summarize
+            cliExecute("--entities",bookid)
+            return ch.cacheGestion(bookid,param,summarize.summarize(bookid,GetOnlyBook(bookid)[0]))
         case "--similar":
             print("exécution de la commande pour avoir des livre ressemblant au livre")
             from similar import extract_similar, BOOKS

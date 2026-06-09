@@ -26,6 +26,13 @@ def getFromCache(id,param):
     
     data = openJson(path_file)
     if param in data:
+        if param == "--summarize":
+            element = data[param]
+            result = element+" "
+            while element != result:
+                element = result
+                result = result.replace("\n","").replace("\"","'").replace("  "," ")
+            return element.replace("\n","").replace("\"","'")
         return data[param]
     elif param == "--card":
         return data
