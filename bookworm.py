@@ -244,11 +244,19 @@ def cliExecute (param,bookid):
             # print(distilBARTDivisionPhrase.summarize(GetOnlyBook(bookid)[1]))
         case "--similar":
             print("exécution de la commande pour avoir des livre ressemblant au livre")
-        #                 # Fonction définie dans similar.py.
-        #     from similar import extract_similar
+            from similar import extract_similar, BOOKS
 
-        #     # Ici on passe bookid car le module similar compare ce livre avec d'autres IDs.
-        #     return ch.cacheGestion(bookid, param, extract_similar(bookid))
+            books_content = {}
+            target_book = GetOnlyBook(bookid)
+            if target_book:
+                books_content[int(bookid)] = target_book[1]
+
+            for bid in BOOKS:
+                current_book = GetOnlyBook(str(bid))
+                if current_book:
+                    books_content[bid] = current_book[1]
+
+            return ch.cacheGestion(bookid, param, extract_similar(bookid, books_content))
         case "--card":
             print("exécution de la commande pour avoir une carte sur le livre avec toutes les informations")
             for i in cliCommande:

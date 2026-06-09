@@ -1,6 +1,4 @@
-import re
-import subprocess
-import sys
+import re, subprocess, sys, json, os
 
 try:
     import spacy
@@ -15,21 +13,16 @@ except OSError:
     import importlib
     importlib.reload(spacy)
 
-PERSON_BLACKLIST = {
-    "said", "chapter", "gutenberg", "project", "illustration", "footnote",
-    "miss", "mr", "mrs", "dr", "lord", "lady", "majesty",
-    "idiot", "stolen", "drawn", "away", "navigation", "treason",
-    "pennyworth", "hearthrug", "latitude", "longitude","quietly", "silently", "momentarily", "presently", "taking",
-    "motioning", "neither", "stop", "behold", "confessedly",
-}
+BLACKLIST_FILE = os.path.join(
+    os.path.dirname(__file__),
+    "entities_blacklists.json"
+)
 
-LOCATION_BLACKLIST = {
-    "esq", "turkey", "crab", "magpie", "tortoise", "mouse", "gryphon",
-    "duchess", "king", "mabel", "stigand", "tillie", "supporting",
-    "helm", "albeit", "dinah", "lobster", "caterpillar","and", "us", "thou", "dearest", "mlle", "monsieur", "death",
-    "thunderer", "city", "valley", "east", "fourth",
-}
+with open(BLACKLIST_FILE, "r", encoding="utf-8") as f:
+    BLACKLISTS = json.load(f)
 
+PERSON_BLACKLIST = set(BLACKLISTS["person_blacklist"])
+LOCATION_BLACKLIST = set(BLACKLISTS["location_blacklist"])
 
 def is_valid_entity(text):
     if '\n' in text or '\r' in text:

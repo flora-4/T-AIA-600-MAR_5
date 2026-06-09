@@ -1,0 +1,88 @@
+{
+    "11": {
+        "title": "Alice's Adventures in Wonderland",
+        "category": "children"
+    },
+    "12": {
+        "title": "Through the Looking-Glass",
+        "category": "children"
+    },
+    "16": {
+        "title": "Peter Pan",
+        "category": "children"
+    },
+    "55": {
+        "title": "The Wonderful Wizard of Oz",
+        "category": "children"
+    },
+    "113": {
+        "title": "The Secret Garden",
+        "category": "children"
+    },
+    "120": {
+        "title": "Treasure Island",
+        "category": "children"
+    },
+    "236": {
+        "title": "The Jungle Book",
+        "category": "children"
+    },
+
+    "108": {
+        "title": "The Return of Sherlock Holmes",
+        "category": "crime"
+    },
+    "834": {
+        "title": "The Memoirs of Sherlock Holmes",
+        "category": "crime"
+    },
+    "863": {
+        "title": "The Mysterious Affair at Styles",
+        "category": "crime"
+    },
+    "1661": {
+        "title": "The Adventures of Sherlock Holmes",
+        "category": "crime"
+    },
+    "61262": {
+        "title": "Poirot Investigates",
+        "category": "crime"
+    },
+    "69087": {
+        "title": "The Murder of Roger Ackroyd",
+        "category": "crime"
+    },
+    "70114": {
+        "title": "The Big Four",
+        "category": "crime"
+    },
+
+    "35": {
+        "title": "The Time Machine",
+        "category": "scifi"
+    },
+    "36": {
+        "title": "The War of the Worlds",
+        "category": "scifi"
+    },
+    "84": {
+        "title": "Frankenstein",
+        "category": "scifi"
+    },
+    "159": {
+        "title": "The Island of Doctor Moreau",
+        "category": "scifi"
+    },
+    "164": {
+        "title": "Twenty Thousand Leagues under the Sea",
+        "category": "scifi"
+    },
+    "345": {
+        "title": "Dracula",
+        "category": "scifi"
+    },
+    "68283": {
+        "title": "The Call of Cthulhu",
+        "category": "scifi"
+    }
+}
