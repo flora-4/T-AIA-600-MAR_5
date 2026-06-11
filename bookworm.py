@@ -256,6 +256,10 @@ def cliExecute (param,bookid):
             for i in cliCommande:
                 cliExecute(i,bookid)
             return ch.cacheGestion(bookid,param)
+        case _:
+            print("Commande non reconnue :", param)
+            print("Commandes disponibles :", ", ".join(cliCommande + ["--card"]))
+            return None
 
 result = None
 if param and id:
