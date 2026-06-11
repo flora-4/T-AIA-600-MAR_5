@@ -25,10 +25,10 @@ if not os.path.exists(bookDir):
 site = "https://www.gutenberg.org/ebooks/results/"
 
 # title = "Notes on the cathedral libraries of England"
-title = ""
-author = "Beriah Botfield"
+# title = ""
+# author = "Beriah Botfield"
 
-params = "title="+title.replace(" ","+")+"&"+"author="+author.replace(" ","+")
+# params = "title="+title.replace(" ","+")+"&"+"author="+author.replace(" ","+")
 
 
 def reserch(url):
@@ -56,117 +56,91 @@ def downloadBook(ResultResearch):
         print(f"le livre {ResultResearch} a été télécharché")
         return
 
-    if "pgdbfiles" in ResultResearch:
-        indexStart = ResultResearch.find('<table class="pgdbfiles">')
-        indexEnd = ResultResearch.find('</table>')
-        tableOfResult = ResultResearch[indexStart:indexEnd]
-        arrayTable = tableOfResult.split("\n")
-        for i in arrayTable:
-            if i.startswith("<td>"):
-                EBookNo = i[4:-5]
-                if EBookNo.isnumeric():
-                    if(os.path.exists(os.path.join(bookDir,EBookNo+".txt"))):
-                        continue
-                    with open(os.path.join(bookDir,EBookNo+".txt"),"w", encoding="utf-8") as f:
-                        f.write(reserch(f"https://www.gutenberg.org/cache/epub/{EBookNo}/pg{EBookNo}.txt"))
-                    print(EBookNo)
-    else:
-        print ("aucun livre trouver avec",ResultResearch)
-        sys.exit()
+    # if "pgdbfiles" in ResultResearch:
+    #     indexStart = ResultResearch.find('<table class="pgdbfiles">')
+    #     indexEnd = ResultResearch.find('</table>')
+    #     tableOfResult = ResultResearch[indexStart:indexEnd]
+    #     arrayTable = tableOfResult.split("\n")
+    #     for i in arrayTable:
+    #         if i.startswith("<td>"):
+    #             EBookNo = i[4:-5]
+    #             if EBookNo.isnumeric():
+    #                 if(os.path.exists(os.path.join(bookDir,EBookNo+".txt"))):
+    #                     continue
+    #                 with open(os.path.join(bookDir,EBookNo+".txt"),"w", encoding="utf-8") as f:
+    #                     f.write(reserch(f"https://www.gutenberg.org/cache/epub/{EBookNo}/pg{EBookNo}.txt"))
+    #                 print(EBookNo)
+    # else:
+    #     print ("aucun livre trouver avec",ResultResearch)
+    #     sys.exit()
 
 def clean_text(text):
-    """
-    Nettoie le texte pour faciliter les traitements NLP.
-
-    NLP signifie Natural Language Processing :
-    ce sont les traitements automatiques du langage.
-    """
-
-    # Supprime les retours chariot Windows.
     text = text.replace('\r', '')
 
-    # Supprime les petits textes entre crochets.
-    # Exemple : [Illustration]
     text = re.sub(r'\[[^\]]{0,80}\]', ' ', text)
 
-    # Supprime certaines lignes qui sont des titres de chapitres ou de parties.
     text = re.sub(
         r'(?m)^[ \t]*(CHAPTER|Chapter|BOOK|PART|SECTION|ADVENTURE)\s+[\w\-\.]+[^\n]{0,60}$',
         '',
         text
     )
 
-    # Supprime les chiffres romains seuls.
-    # Exemple : I, II, III, IV...
     text = re.sub(r'(?m)^\s*[IVXLCDM]{1,6}\.?\s*$', '', text)
 
-    # Remplace les guillemets typographiques par des espaces ou apostrophes simples.
     text = text.replace('\u201c', ' ').replace('\u201d', ' ')
     text = text.replace('\u2018', ' ').replace('\u2019', "'")
 
-    # Supprime les underscores utilisés par Gutenberg pour l'italique.
     text = text.replace('_', ' ')
-
-    # Remplace plusieurs espaces par un seul espace.
+    text = text.replace('—', ' ')
+    text = text.replace('!', '')
+    text = text.replace('?', ' ')
+    text = text.replace(':', ' ')
+    text = text.replace('(', ' ')
+    text = text.replace(')', ' ')
+    text = text.replace("[Illustration]","")
+    text = text.replace("“","")
+    text = text.replace("”","")
+    text = text.replace(".","")
+    text = text.replace("[","")
+    text = text.replace("]","")
+    text = text.replace(",","")
+    text = text.replace(";","")
+    
     text = re.sub(r' {2,}', ' ', text)
 
-    # Réduit les grands blocs de lignes vides.
     text = re.sub(r'\n{3,}', '\n\n', text)
 
-    # Retourne le texte final sans espaces inutiles au début et à la fin.
     return text.strip()
 
 
 def extract_body(text):
-    """
-    Extrait uniquement le vrai contenu du livre.
-
-    Un fichier Gutenberg contient souvent :
-    - un début avec des informations techniques et légales ;
-    - le texte du livre ;
-    - une fin avec des mentions légales.
-
-    Cette fonction retire ce qui n'est pas le livre.
-    """
-
-    # On cherche le marqueur de début du livre.
-    # La regex accepte "THE" ou "THIS" car Gutenberg varie selon les fichiers.
     match_start = re.search(
         r'\*{3}\s*START OF (THE|THIS) PROJECT GUTENBERG[^\n]*\n',
         text
     )
 
-    # On cherche le marqueur de fin du livre.
     match_end = re.search(
         r'\*{3}\s*END OF (THE|THIS) PROJECT GUTENBERG',
         text
     )
 
-    # Si on trouve un début et une fin, on garde seulement ce qui est entre les deux.
     if match_start and match_end:
         body = text[match_start.end():match_end.start()]
 
-    # Sinon, on applique des solutions de secours.
     else:
-        # Si on trouve seulement le début, on garde tout ce qui vient après.
         if match_start:
             body = text[match_start.end():]
 
-        # Si aucun marqueur Gutenberg n'est trouvé, on essaye quand même de récupérer le livre.
         else:
-            # Par défaut, on garde tout le texte.
             body = text
 
-            # On cherche des marqueurs classiques de début de livre.
             for marker in ['CHAPTER I', 'Chapter I', 'PART ONE', 'BOOK ONE']:
                 idx = text.find(marker)
 
-                # Si on trouve un chapitre, on commence le texte à partir de là.
                 if idx != -1:
                     body = text[idx:]
                     break
 
-    # Liste de motifs qui peuvent indiquer une fin inutile ou légale.
     footer_patterns = [
         r'\n[A-Z][^\n]{0,60}\n\nMay be had wherever books are sold',
         r'\nEnd of (the )?Project Gutenberg',
@@ -175,23 +149,17 @@ def extract_body(text):
         r'\n+\s*THE END\s*\n+',
     ]
 
-    # earliest représente l'endroit le plus tôt où une fin parasite est trouvée.
     earliest = len(body)
 
-    # On teste chaque motif de fin.
     for pattern in footer_patterns:
-        # re.IGNORECASE permet d'ignorer les majuscules/minuscules.
         m = re.search(pattern, body, re.IGNORECASE)
 
-        # Si un motif est trouvé avant les autres, on garde sa position.
         if m and m.start() < earliest:
             earliest = m.start()
 
-    # Si on a trouvé une fin parasite, on coupe le texte avant cette partie.
     if earliest < len(body):
         body = body[:earliest]
 
-    # On retourne le texte nettoyé des espaces au début et à la fin.
     return clean_text(body.strip())
 
 def GetOnlyBook(bookid):
@@ -212,7 +180,10 @@ def GetOnlyBook(bookid):
 
 cliCommande = ["--lexdiv","--topics","--entities","--summarize","--similar"]
 
-def cliExecute (param,bookid): 
+def cliExecute (param,bookid):
+    if not bookid.isnumeric():
+        print ("le livre dois être rechercher grâce à un identifiant (int positif attendue)")
+        sys.exit() 
     if not os.path.exists(os.path.join(cacheDir,bookid+".json")):
         ch.createFile(bookid,GetOnlyBook(bookid))
     cache = ch.cacheGestion(bookid,param)
@@ -266,5 +237,3 @@ if param and id:
     result = cliExecute(param,id)
 if result:
     print(json.dumps(result, indent=4, ensure_ascii=False))
-
-"https://www.gutenberg.org/cache/epub/78788/pg78788.txt"

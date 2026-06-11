@@ -8,7 +8,7 @@ def lexdiv(array):
     if not array:
         print("aucun livre a traité")
         return
-    x = array[1].replace("\n"," ").replace("[Illustration]","").replace("“","").replace("”","").replace(".","").replace("[","").replace("]","").replace(",","").replace(";","")
+    x = array[1].replace("\n"," ").replace("'", ' ')
     x = x.strip().split(" ")
     
     allword = []
@@ -16,8 +16,11 @@ def lexdiv(array):
     onlyOneWord = []
 
     for i in x:
-        if i =="":
+        if i =="" or i == "*": 
             continue
+        if len(i)==1:
+            if i.lower !=("i") or i.lower !=("a"): 
+                continue
         allword.append(i)
         if not i.lower() in uniqueWord:
             uniqueWord.append(i.lower())
