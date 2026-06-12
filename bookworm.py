@@ -205,6 +205,7 @@ def cliExecute (param,bookid):
         case "--summarize":
             print("exécution de la commande pour avoir un résumer du livre")
             import summarize
+            cliExecute("--topics",bookid)
             cliExecute("--entities",bookid)
             return ch.cacheGestion(bookid,param,summarize.summarize(bookid,GetOnlyBook(bookid)[0]))
         case "--similar":

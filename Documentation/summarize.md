@@ -44,9 +44,10 @@ flowchart TD
     C --> D["Titre"]
     C --> E["Date / Auteur"]
 
-    E --> F["Cache JSON"]
+    C --> F["Cache JSON"]
 
     F --> G["getEntity()"]
+    F--> L["getTopics()"]
 
     G --> H["Personnages"]
     G --> I["Lieux"]
@@ -54,7 +55,10 @@ flowchart TD
     H --> J["Template Engine"]
     I --> J
 
+    L -->J
+
     D --> J
+    E--> J
 
     J --> K["Résumé final"]
 ```
@@ -79,7 +83,9 @@ Le processus se déroule en trois étapes :
 flowchart TD
 
 A[Lecture des métadonnées] --> B[Récupération des entités]
+A --> E[Récupération des Topics]
 B --> C[Injection dans le template]
+E-->C
 C --> D[Génération du résumé]
 ```
 
@@ -90,13 +96,15 @@ C --> D[Génération du résumé]
 Le résumé est généré à partir du modèle suivant :
 
 ```text
-The book n°{id}, "{bookTitle}", was released in {dateMonth} {dateYear} and written by {author}.
+"{bookTitle}", was released in {dateMonth} {dateYear} and written by {author}.
 
 This book follows {mainCharacter}, one of the main figures of the narrative. Throughout the story, {mainCharacter} will meet multiple characters like {secondCharacter} who help in the development of that story.
 
 The events take place mainly in {mainPlace}, a location that take an important place for the story.
 
 Through all characters and places, "{bookTitle}" presents a narrative that gradually unfolds around the events, relationships, and situations encountered throughout the book.
+
+The book covers themes including, {theme}.
 ```
 
 Les variables sont automatiquement remplacées par les données du livre analysé.
@@ -204,8 +212,57 @@ Retour :
 )
 ```
 
+# Fonction getTopics()
+
+## Rôle
+
+Récupère les thèmes préalablement extraites et stockées dans le cache.
+
+Le module ne réalise aucune analyse NLP supplémentaire.
+
+Il réutilise directement les résultats produits par le module `topics.py`.
+
 ---
 
+## Signature
+
+```python
+getTopics(bookid)
+```
+
+---
+
+## Données récupérées
+
+```json
+{
+  "--topics": {
+    "1: fairytale": [
+      "sister",
+      "earth",
+      "watch"
+    ],
+    "2: journey":  [
+      "key",
+      "wander",
+      "climb"
+    ]
+  }
+}
+```
+## Applique un traitement
+
+Récupère tous les thèmes pour conserver que les 4 meilleurs
+
+Retour :
+
+```python
+(
+    ["fairytale", "journey",...]
+)
+```
+
+---
 # Fonction summarize()
 
 ## Rôle
@@ -233,6 +290,8 @@ summarize()
     |
     +--> getEntity()
     |
+    +--> getTopics()
+    |
     +--> récupération des variables
     |
     +--> template.format(...)
@@ -254,8 +313,10 @@ summarize()
     "dateMonth": "June",
     "dateYear": "2008",
     "mainCharacter": "Alice",
-    "secondCharacter": "White Rabbit",
-    "mainPlace": "Wonderland"
+    "secondCharacter": "Hatter",
+    "thirdCharacter" = "Queen",
+    "mainPlace": "Wonderland",
+    "theme":"nature, fairytale, family drama and friendship"
 }
 ```
 
@@ -264,13 +325,15 @@ summarize()
 ## Résultat
 
 ```text
-The book n°11, "Alice's Adventures in Wonderland", was released in June 2008 and written by Lewis Carroll.
+"Alice's Adventures in Wonderland", was released in June 2008 and written by Lewis Carroll.
 
-This book follows Alice, one of the main figures of the narrative. Throughout the story, Alice will meet multiple characters like White Rabbit who help in the development of that story.
+This book follows Alice, one of the main figures of the narrative. Throughout the story, Alice will meet multiple characters like Hatter and Queen who help in the development of that story.
 
 The events take place mainly in Wonderland, a location that take an important place for the story.
 
 Through all characters and places, "Alice's Adventures in Wonderland" presents a narrative that gradually unfolds around the events, relationships, and situations encountered throughout the book.
+
+The book covers themes including, nature, fairytale, family drama and friendship.
 ```
 
 ---
