@@ -30,28 +30,18 @@ Le module assure les responsabilités suivantes :
 
 # Architecture
 
-```text
-                  +----------------+
-                  | Commande CLI   |
-                  +--------+-------+
-                           |
-                           v
-                  +----------------+
-                  | cacheGestion() |
-                  +--------+-------+
-                           |
-          +----------------+----------------+
-          |                                 |
-          v                                 v
-   getFromCache()                 makeInCache()
-          |                                 |
-          v                                 v
-      Lecture JSON                  Écriture JSON
-          |                                 |
-          +----------------+----------------+
-                           |
-                           v
-                  cache/<id>.json
+```mermaid
+flowchart TD
+    A["Commande CLI"] --> B["cacheGestion()"]
+
+    B --> C["getFromCache()"]
+    B --> D["makeInCache()"]
+
+    C --> E["Lecture JSON"]
+    D --> F["Écriture JSON"]
+
+    E --> G["id.json"]
+    F --> G
 ```
 
 ---

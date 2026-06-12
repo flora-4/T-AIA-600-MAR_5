@@ -160,10 +160,7 @@ def extract_body(text, clean=True):
     if earliest < len(body):
         body = body[:earliest]
 
-    body = body.strip()
-    if clean:
-        return clean_text(body)
-    return body
+    return clean_text(body.strip())
 
 def GetOnlyBook(bookid):
     pathBook = os.path.join(bookDir,bookid+".txt")

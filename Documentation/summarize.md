@@ -36,43 +36,27 @@ Le module permet de :
 
 # Architecture
 
-```text
-                   Livre
-                      |
-                      v
-              Informations livre
-                      |
-                      v
-                getInfo()
-                      |
-                      |
-                      +------------------+
-                      |                  |
-                      v                  v
-                Titre              Date / Auteur
-                                         |
-                                         |
-                                         v
-                              +----------------+
-                              | Cache JSON     |
-                              +----------------+
-                                         |
-                                         v
-                                   getEntity()
-                                         |
-                                         |
-                         +---------------+---------------+
-                         |                               |
-                         v                               v
-                    Personnages                    Lieux
-                         |                               |
-                         +---------------+---------------+
-                                         |
-                                         v
-                                  Template Engine
-                                         |
-                                         v
-                                    Résumé final
+```mermaid
+flowchart TD
+    A["Livre"] --> B["Informations livre"]
+    B --> C["getInfo()"]
+
+    C --> D["Titre"]
+    C --> E["Date / Auteur"]
+
+    E --> F["Cache JSON"]
+
+    F --> G["getEntity()"]
+
+    G --> H["Personnages"]
+    G --> I["Lieux"]
+
+    H --> J["Template Engine"]
+    I --> J
+
+    D --> J
+
+    J --> K["Résumé final"]
 ```
 
 ---

@@ -29,44 +29,22 @@ Le système est conçu pour minimiser les temps d'exécution grâce à :
 
 # Architecture générale
 
-```text
-                  +----------------+
-                  |  Identifiant   |
-                  | Gutenberg ID   |
-                  +--------+-------+
-                           |
-                           v
-                  +----------------+
-                  | Téléchargement |
-                  | du livre       |
-                  +--------+-------+
-                           |
-                           v
-                  +----------------+
-                  | Nettoyage du   |
-                  | contenu        |
-                  +--------+-------+
-                           |
-                           v
-                  +----------------+
-                  | Cache local    |
-                  +--------+-------+
-                           |
-          +----------------+----------------+
-          |                |                |
-          v                v                v
-     --lexdiv         --topics        --entities
-          |                |                |
-          +----------------+----------------+
-                           |
-                           v
-                     --summarize
-                           |
-                           v
-                       --similar
-                           |
-                           v
-                        --card
+```mermaid
+flowchart TD
+    A["Identifiant<br/>Gutenberg ID"] --> B["Téléchargement<br/>du livre"]
+    B --> C["Nettoyage du<br/>contenu"]
+    C --> D["Cache local"]
+
+    D --> E["--lexdiv"]
+    D --> F["--topics"]
+    D --> G["--entities"]
+
+    E --> H["--summarize"]
+    F --> H
+    G --> H
+
+    H --> I["--similar"]
+    I --> J["--card"]
 ```
 
 ---

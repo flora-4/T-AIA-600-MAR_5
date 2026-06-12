@@ -37,25 +37,19 @@ Chaque mot rencontré est ensuite traité et classé dans plusieurs catégories.
 
 # Architecture
 
-```text
-                Texte du livre
-                       |
-                       v
-               Découpage en mots
-                       |
-                       v
-        +--------------+--------------+
-        |              |              |
-        v              v              v
-    allword      uniqueWord     onlyOneWord
-        |              |              |
-        +--------------+--------------+
-                       |
-                       v
-             Calcul des métriques
-                       |
-                       v
-                 Résultat JSON
+```mermaid
+flowchart TD
+    A["Texte du livre"] --> B["Découpage en mots"]
+
+    B --> C["allword"]
+    B --> D["uniqueWord"]
+    B --> E["onlyOneWord"]
+
+    C --> F["Calcul des métriques"]
+    D --> F
+    E --> F
+
+    F --> G["Résultat JSON"]
 ```
 
 ---
